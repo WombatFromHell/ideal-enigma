@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dockerfile: ["Dockerfile.devbox"]
+        dockerfile: ["Containerfile.devbox"]
         tag: ["devbox"]
     steps:
       - name: Checkout code

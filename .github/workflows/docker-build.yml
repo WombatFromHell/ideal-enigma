@@ -23,9 +23,9 @@ jobs:
       - name: Export lowercase image names
         shell: bash
         run: |
-          : "ghcr.io/${{ github.actor }}/${{ github.repository }}/${{ matrix.container.name }}"
+          : "ghcr.io/${{ github.repository }}/${{ matrix.container.name }}"
           echo "IMAGE_NAME=${_,,}" >> $GITHUB_ENV
-          : "ghcr.io/${{ github.actor }}/${{ github.repository }}/${{ matrix.container.name }}:cache"
+          : "ghcr.io/${{ github.repository }}/${{ matrix.container.name }}:cache"
           echo "CACHE_NAME=${_,,}" >> $GITHUB_ENV
 
       - name: Extract Git metadata

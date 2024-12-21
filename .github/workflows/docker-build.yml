@@ -29,20 +29,17 @@ jobs:
             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-
       - name: Build Docker images
         run: |
           docker build -f ${{ matrix.dockerfile }} \
           -t ghcr.io/wombatfromhell/${{ matrix.tag }}:${{ env.VERSION }} \
           -t ghcr.io/wombatfromhell/${{ matrix.tag }}:latest .
 
-      - name: Push Docker images
+      - name: Login to registry
         run: |
-          docker push ghcr.io/wombatfromhell/${{ matrix.tag }}:${{ env.VERSION }}
-          docker push ghcr.io/wombatfromhell/${{ matrix.tag }}:latest
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push images to registry
+        run: |
+          docker push ghcr.io/${{ github.actor }}/${{ matrix.tag }}:${{ env.VERSION }}
+          docker push ghcr.io/${{ github.actor }}/${{ matrix.tag }}:latest

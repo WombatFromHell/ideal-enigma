@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+
 permissions:
   contents: read
   packages: write
@@ -25,8 +29,6 @@ jobs:
         run: |
           : "ghcr.io/${{ github.repository }}/${{ matrix.container.name }}"
           echo "IMAGE_NAME=${_,,}" >> $GITHUB_ENV
-          : "ghcr.io/${{ github.repository }}/${{ matrix.container.name }}:cache"
-          echo "CACHE_NAME=${_,,}" >> $GITHUB_ENV
 
       - name: Extract Git metadata
         id: git-info
@@ -55,8 +57,8 @@ jobs:
           file: ${{ matrix.container.file }}
           platforms: linux/amd64
           push: true
-          cache-from: type=registry,ref=${{ env.CACHE_NAME }}
-          cache-to: type=registry,ref=${{ env.CACHE_NAME }},mode=max
+          cache-from: type=gha,scope=${{ matrix.container.name }}
+          cache-to: type=gha,scope=${{ matrix.container.name }},mode=max
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.IMAGE_NAME }}:latest

@@ -1,13 +1,9 @@
 name: Build Containers
-
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - "v*"
     branches:
       - main
-  workflow_dispatch: # allow manual trigger
-
 permissions:
   contents: read
   packages: write
@@ -15,14 +11,26 @@ permissions:
 jobs:
   build-push-tag:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        container:
+          - name: devbox
+            file: ./Containerfile.devbox
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Export lowercase image names
+        shell: bash
+        run: |
+          : "ghcr.io/${{ github.actor }}/${{ github.repository }}/${{ matrix.container.name }}"
+          echo "IMAGE_NAME=${_,,}" >> $GITHUB_ENV
+          : "ghcr.io/${{ github.actor }}/${{ github.repository }}/${{ matrix.container.name }}:cache"
+          echo "CACHE_NAME=${_,,}" >> $GITHUB_ENV
+
       - name: Extract Git metadata
         id: git-info
         run: |
-          # Extract tag or commit-sha
           if [ "${{ github.ref_type }}" == "tag" ]; then
             echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
           else
@@ -36,12 +44,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push container images
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           context: .
-          file: ./Containerfile.devbox
+          file: ${{ matrix.container.file }}
           platforms: linux/amd64
           push: true
-          outputs: |
-            type=image,name=ghcr.io/wombatfromhell/devbox:${{ env.VERSION }},name=ghcr.io/wombatfromhell/devbox:latest
+          cache-from: type=registry,ref=${{ env.CACHE_NAME }}
+          cache-to: type=registry,ref=${{ env.CACHE_NAME }},mode=max
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.IMAGE_NAME }}:latest

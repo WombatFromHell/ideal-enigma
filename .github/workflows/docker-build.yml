@@ -39,10 +39,10 @@ jobs:
       - name: Build Docker images
         run: |
           docker build -f ${{ matrix.dockerfile }} \
-          -t ghcr.io/WombatFromHell/ideal-enigma/${{ matrix.tag }}:${{ env.VERSION }} \
-          -t ghcr.io/WombatFromHell/ideal-enigma/${{ matrix.tag }}:latest .
+          -t ghcr.io/wombatfromhell/${{ matrix.tag }}:${{ env.VERSION }} \
+          -t ghcr.io/wombatfromhell/${{ matrix.tag }}:latest
 
       - name: Push Docker images
         run: |
-          docker push ghcr.io/WombatFromHell/ideal-enigma/${{ matrix.tag }}:${{ env.VERSION }}
-          docker push ghcr.io/WombatFromHell/ideal-enigma/${{ matrix.tag }}:latest
+          docker push ghcr.io/wombatfromhell/${{ matrix.tag }}:${{ env.VERSION }}
+          docker push ghcr.io/wombatfromhell/${{ matrix.tag }}:latest

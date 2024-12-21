@@ -1,5 +1,9 @@
 FROM debian:sid
 
+LABEL org.opencontainers.image.source=https://github.com/WombatFromHell/ideal-enigma
+LABEL org.opencontainers.image.description="Debian based development container with NVIDIA support"
+LABEL org.opencontainers.image.licenses=MIT
+
 ARG NV_DRIVER_VER=565.77
 ARG DEB_SRC_TARGET=/etc/apt/sources.list.d/debian.sources
 

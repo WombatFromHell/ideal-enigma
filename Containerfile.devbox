@@ -1,4 +1,4 @@
-FROM debian:sid
+FROM debian:sid-slim
 
 LABEL org.opencontainers.image.source=https://github.com/WombatFromHell/ideal-enigma
 LABEL org.opencontainers.image.description="Debian based development container with NVIDIA support"
@@ -9,12 +9,12 @@ ARG DEB_SRC_TARGET=/etc/apt/sources.list.d/debian.sources
 
 # only install nvidia driver libs/utils and not kernel modules
 RUN apt-get update && \
-  apt-get install -y wget build-essential kmod gcc-multilib libglvnd-dev pkg-config && \
+  apt-get install -y --no-install-recommends ca-certificates gpg wget build-essential kmod gcc-multilib libglvnd-dev pkg-config && \
   wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/${NV_DRIVER_VER}/NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   chmod +x NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run --no-kernel-modules --no-x-check -s && \
   rm -f ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
-  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
+  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y; rm -rf /tmp/* /var/lib/apt/lists/*
 
 # make sure appropriate media codecs are available for use
 RUN cp -f "${DEB_SRC_TARGET}" "${DEB_SRC_TARGET}.bak" && \
@@ -33,12 +33,11 @@ RUN cp -f "${DEB_SRC_TARGET}" "${DEB_SRC_TARGET}.bak" && \
   echo "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" | tee -a /etc/apt/preferences.d/mozilla >/dev/null
 
 RUN apt-get update && \
-  apt-get upgrade -y && \
-  apt-get install -y \
-  gpg git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
+  apt-get install -y --no-install-recommends \
+  git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
-  mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg \
+  mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg qt6-wayland \
   brave-browser code firefox-devedition && \
-  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
+  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y; rm -rf /tmp/* /var/lib/apt/lists/*
 
 ENTRYPOINT [ "/bin/bash" ]

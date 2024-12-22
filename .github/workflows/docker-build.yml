@@ -1,9 +1,6 @@
 name: Build Containers
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -46,19 +43,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Cache Docker images
+        id: docker-cache
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: oci-${{ runner.os }}-${{ hashFiles(${{ matrix.container.file }}) }}
 
       - name: Build and push container images
+        if: steps.docker-cache.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v6
         with:
-          builder: ${{ steps.buildx.outputs.name }}
           context: .
           file: ${{ matrix.container.file }}
           platforms: linux/amd64
           push: true
-          cache-from: type=gha,scope=${{ matrix.container.name }}
-          cache-to: type=gha,scope=${{ matrix.container.name }},mode=max
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.IMAGE_NAME }}:latest

@@ -15,7 +15,6 @@ RUN apt-get update && \
   wget gpg git curl apt-transport-https \
   xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio && \
-  build-essential kmod gcc-multilib libglvnd-dev pkg-config \
   mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg && \
   apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
 
@@ -36,9 +35,11 @@ RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor 
   apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
 
 # only install nvidia driver libs/utils and not kernel modules
-RUN wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/${NV_DRIVER_VER}/NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
+RUN apt-get install -y build-essential kmod gcc-multilib libglvnd-dev pkg-config && \
+  wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/${NV_DRIVER_VER}/NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   chmod +x NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run --no-kernel-modules --no-x-check -s && \
-  rm -f ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run
+  rm -f ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
+  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
 
 ENTRYPOINT [ "/bin/bash" ]

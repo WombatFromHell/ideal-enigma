@@ -47,7 +47,7 @@ jobs:
         id: docker-cache
         uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: oci-${{ runner.os }}-${{ hashFiles(${{ matrix.container.file }}) }}
+          key: oci-${{ runner.os }}-${{ hashFiles('${{ matrix.container.file }}') }}
 
       - name: Build and push container images
         if: steps.docker-cache.outputs.cache-hit != 'true'

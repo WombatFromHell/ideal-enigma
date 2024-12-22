@@ -37,7 +37,7 @@ RUN apt-get update && \
   apt-get install -y \
   gpg git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio && \
-  mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg \
+  mesa-utils-bin vulkan-tools nvidia-vaapi-driver vainfo ffmpeg \
   brave-browser code firefox-devedition
 
 ENTRYPOINT [ "/bin/bash" ]

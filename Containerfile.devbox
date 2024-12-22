@@ -33,11 +33,11 @@ RUN cp -f "${DEB_SRC_TARGET}" "${DEB_SRC_TARGET}.bak" && \
   echo "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" | tee -a /etc/apt/preferences.d/mozilla >/dev/null
 
 RUN apt-get update && \
+  apt-get upgrade -y && \
   apt-get install -y \
   gpg git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio && \
   mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg \
-  brave-browser code firefox-devedition && \
-  apt-get clean -y; apt-get autoremove -y; apt-get autoclean -y
+  brave-browser code firefox-devedition
 
 ENTRYPOINT [ "/bin/bash" ]

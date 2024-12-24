@@ -23,5 +23,5 @@ jobs:
           packages: ideal-enigma/${{ matrix.package }}
           older-than: 90 days
           delete-orphaned-images: true
-          keep-n-tagged: 20
-          keep-n-untagged: 20
+          keep-n-tagged: 7
+          keep-n-untagged: 7

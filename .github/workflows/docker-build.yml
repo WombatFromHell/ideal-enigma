@@ -1,6 +1,8 @@
 name: Build Containers
 on:
-  workflow_dispatch:
+  workflow_dispatch: # when manually triggered
+  schedule:
+    - cron: "0 0 */14 * *" # once every 14 days @ 0000 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}

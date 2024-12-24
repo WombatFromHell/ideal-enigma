@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Lowercase repo name
         run: |
-          echo "REPO=${${{ github.repository }},,}" >> $GITHUB_ENV"
+          echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4

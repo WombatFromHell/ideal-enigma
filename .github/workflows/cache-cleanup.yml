@@ -1,0 +1,45 @@
+name: Cache Cleanup
+
+on:
+  schedule:
+    # Runs at 01:00 UTC every 14 days
+    - cron: "0 1 */14 * *"
+  # Optional: Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup
+        run: |
+          gh extension install actions/gh-actions-cache
+
+          REPO=${{ github.repository }}
+          echo "Fetching list of cache keys..."
+
+          # Get current timestamp in seconds
+          current_time=$(date +%s)
+          # 14 days in seconds
+          cutoff_seconds=$((14 * 24 * 60 * 60))
+
+          # List all caches with their creation dates
+          caches_with_dates=$(gh actions-cache list -R $REPO)
+
+          echo "Analyzing cache ages..."
+          while IFS=$'\t' read -r key size date rest; do
+            # Convert cache date to timestamp
+            cache_time=$(date -d "$date" +%s)
+            age_seconds=$((current_time - cache_time))
+
+            if [ $age_seconds -gt $cutoff_seconds ]; then
+              echo "Deleting cache key: $key (created on $date)"
+              gh actions-cache delete $key -R $REPO --confirm
+            else
+              echo "Keeping cache key: $key (created on $date)"
+            fi
+          done <<< "$caches_with_dates"
+
+          echo "Cache cleanup completed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -23,22 +23,24 @@ jobs:
           # 14 days in seconds
           cutoff_seconds=$((14 * 24 * 60 * 60))
 
-          # List all caches with their creation dates
-          caches_with_dates=$(gh actions-cache list -R $REPO)
+          # List all caches and format as JSON for easier parsing
+          caches_json=$(gh api -H "Accept: application/vnd.github+json" /repos/$REPO/actions/caches)
 
-          echo "Analyzing cache ages..."
-          while IFS=$'\t' read -r key size date rest; do
-            # Convert cache date to timestamp
-            cache_time=$(date -d "$date" +%s)
+          # Use jq to parse the JSON and extract relevant information
+          echo "$caches_json" | jq -r '.actions_caches[] | select(.key != null) | {key: .key, created_at: .created_at} | @sh "CACHE_KEY=\(.key) CREATED_AT=\(.created_at)"' | while read -r cache_info; do
+            eval "$cache_info"
+
+            # Convert ISO 8601 date to timestamp
+            cache_time=$(date -d "$CREATED_AT" +%s)
             age_seconds=$((current_time - cache_time))
 
             if [ $age_seconds -gt $cutoff_seconds ]; then
-              echo "Deleting cache key: $key (created on $date)"
-              gh actions-cache delete $key -R $REPO --confirm
+              echo "Deleting cache key: $CACHE_KEY (created on $CREATED_AT)"
+              gh actions-cache delete "$CACHE_KEY" -R $REPO --confirm
             else
-              echo "Keeping cache key: $key (created on $date)"
+              echo "Keeping cache key: $CACHE_KEY (created on $CREATED_AT)"
             fi
-          done <<< "$caches_with_dates"
+          done
 
           echo "Cache cleanup completed"
         env:

@@ -41,7 +41,7 @@ jobs:
           output: "trivy-results.sarif"
           ignore-unfixed: true
           severity: "CRITICAL,HIGH"
-          image-ref: "ghcr.io/${{ env.REPO }}/${{ matrix.package }}:${{ github.sha }}"
+          image-ref: "ghcr.io/${{ env.REPO }}/${{ matrix.package }}:latest"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3

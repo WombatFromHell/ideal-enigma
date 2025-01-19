@@ -1,10 +1,6 @@
 name: Cache Cleanup
 
 on:
-  schedule:
-    # Runs at 01:00 UTC every 14 days
-    - cron: "0 1 */14 * *"
-  # Optional: Allow manual trigger
   workflow_dispatch:
 
 jobs:

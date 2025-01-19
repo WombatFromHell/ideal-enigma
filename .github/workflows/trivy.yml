@@ -1,9 +1,7 @@
 name: Trivy Scan ghcr.io Image
 
 on:
-  workflow_dispatch: # when manually triggered
-  schedule:
-    - cron: "0 3 */14 * *" # once every 14 days @ 0300 UTC
+  workflow_dispatch:
 
 jobs:
   trivy_scan:

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-IMAGE_NAME="devbox:latest"
+declare -A images
+images["devbox"]="Containerfile.devbox"
+images["devbox-minimal"]="Containerfile.minimal.devbox"
 
 if command -v docker &>/dev/null; then
 	RUNTIME="docker"
@@ -11,4 +13,6 @@ else
 	exit 1
 fi
 
-"$RUNTIME" build -t $IMAGE_NAME -f Containerfile.devbox
+for image in "${!images[@]}"; do
+	"$RUNTIME" build -t "$image":latest -f "${images[$image]}"
+done

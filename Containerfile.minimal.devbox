@@ -33,15 +33,13 @@ RUN wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf
   echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list >/dev/null && \
   echo "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" | tee -a /etc/apt/preferences.d/mozilla >/dev/null && \
   #
-  # Install Windsurf and dev environment dependencies
+  # Install only dev environment dependencies
   apt-get update && \
   apt-get upgrade -yqq --no-install-recommends \
   ca-certificates gpg wget build-essential \
   git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
   mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg qt6-wayland \
-  # brave-browser code firefox-devedition && \
-  windsurf && \
   apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
 
 ENTRYPOINT [ "/bin/bash" ]

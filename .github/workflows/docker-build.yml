@@ -17,6 +17,9 @@ jobs:
         container:
           - name: devbox
             file: ./Containerfile.devbox
+          - name: devbox-minimal
+            file: ./Containerfile.minimal.devbox
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,6 +39,7 @@ jobs:
             echo "VERSION=testing" >> $GITHUB_ENV
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "VERSION=stable" >> $GITHUB_ENV
+            # ensure "latest" tag is pinned to main branch only
             echo "LATEST_TAG=${{ env.IMAGE_NAME }}:latest" >> $GITHUB_ENV
           else
             echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV

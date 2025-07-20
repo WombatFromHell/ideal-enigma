@@ -1,4 +1,5 @@
 name: Build Containers
+
 on:
   workflow_dispatch:
 
@@ -15,19 +16,19 @@ jobs:
     strategy:
       matrix:
         container:
-          # - name: devbox-nvidia
-          #   file: ./Containerfile.nvidia.devbox
-          - name: devbox
+          - suffix: ""
             file: ./Containerfile.devbox
+          # - suffix: "-nvidia"
+          #   file: ./Containerfile.nvidia.devbox
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set lowercase repository name
-        shell: bash
         run: |
           echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "REPO_NAME=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> $GITHUB_ENV
 
       - name: Extract Git metadata
         id: git-info
@@ -38,7 +39,6 @@ jobs:
             echo "version=testing" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "version=stable" >> $GITHUB_OUTPUT
-            # ensure "latest" tag is pinned to main branch only
             echo "latest_tag=latest" >> $GITHUB_OUTPUT
           else
             echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -46,47 +46,36 @@ jobs:
 
       - name: Set image variables
         run: |
-          echo "LOCAL_IMAGE=localhost/${{ matrix.container.name }}" >> $GITHUB_ENV
-          echo "REMOTE_IMAGE=ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}" >> $GITHUB_ENV
+          echo "REMOTE_IMAGE=ghcr.io/${{ env.REPO_LOWER }}${{ matrix.container.suffix }}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${{ steps.git-info.outputs.version }}" >> $GITHUB_ENV
           echo "IMAGE_LATEST=${{ steps.git-info.outputs.latest_tag }}" >> $GITHUB_ENV
 
-      - name: Login to GHCR
+      - name: Prepare tag list
+        id: tag-list
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
-          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build container image with Podman
-        run: |
-          podman build \
-            --platform linux/amd64 \
-            --tag ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} \
-            --file ${{ matrix.container.file }} \
-            .
-
-      - name: Tag image with latest (if on main branch)
-        if: env.IMAGE_LATEST != ''
-        run: |
-          podman tag ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }}
-
-      - name: Push images to GHCR with Skopeo
-        run: |
-          # Push the versioned tag
-          skopeo copy \
-            containers-storage:${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} \
-            docker://${{ env.REMOTE_IMAGE }}:${{ env.IMAGE_VERSION }}
-
-          # Push the latest tag if it exists
-          if [ -n "${{ env.IMAGE_LATEST }}" ]; then
-            skopeo copy \
-              containers-storage:${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }} \
-              docker://${{ env.REMOTE_IMAGE }}:${{ env.IMAGE_LATEST }}
+          TAGS="${IMAGE_VERSION}"
+          if [ -n "${IMAGE_LATEST}" ]; then
+            TAGS="${TAGS}"$'\n'"${IMAGE_LATEST}"
           fi
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "${TAGS}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Cleanup local images
-        if: always()
-        run: |
-          podman rmi ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} || true
-          if [ -n "${{ env.IMAGE_LATEST }}" ]; then
-            podman rmi ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }} || true
-          fi
+      - name: Build image (but don't push)
+        uses: redhat-actions/buildah-build@v2
+        with:
+          context: .
+          containerfiles: |
+            ${{ matrix.container.file }}
+          image: ${{ env.REMOTE_IMAGE }}
+          tags: ${{ steps.tag-list.outputs.tags }}
+          platforms: linux/amd64
+
+      - name: Push image to GHCR
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ env.REMOTE_IMAGE }}
+          tags: ${{ steps.tag-list.outputs.tags }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}

@@ -8,19 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [
-            devbox,
-            # devbox-fat,
-            # devbox-nvidia,
-            devbox-minimal,
+        suffix: [
+            "",
+            # "-nvidia"
           ]
     permissions:
       packages: write
     steps:
-      - name: Delete Images Older Than 90 Days
-        uses: dataaxiom/ghcr-cleanup-action@v1.0.15
+      - name: Clean up images for package ${{ github.event.repository.name }}${{ matrix.suffix }}
+        uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          packages: ideal-enigma/${{ matrix.package }}
-          older-than: 90 days
+          packages: ${{ github.event.repository.name }}${{ matrix.package }}
+          older-than: 60 days
+          keep-n-tagged: 3
           delete-orphaned-images: true
+          delete-partial-images: true

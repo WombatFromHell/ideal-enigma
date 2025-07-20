@@ -27,59 +27,66 @@ jobs:
       - name: Set lowercase repository name
         shell: bash
         run: |
-          echo "REPO_LOWER=${{ github.repository }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
+          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Extract Git metadata
         id: git-info
         run: |
           if [ "${{ github.ref_type }}" == "tag" ]; then
-            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/testing" ]; then
-            echo "VERSION=testing" >> $GITHUB_ENV
+            echo "version=testing" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "VERSION=stable" >> $GITHUB_ENV
+            echo "version=stable" >> $GITHUB_OUTPUT
             # ensure "latest" tag is pinned to main branch only
-            echo "LATEST_TAG=latest" >> $GITHUB_ENV
+            echo "latest_tag=latest" >> $GITHUB_OUTPUT
           else
-            echo "VERSION=${{ github.sha }}" >> $GITHUB_ENV
+            echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Login to GHCR with Podman
+      - name: Set image variables
+        run: |
+          echo "LOCAL_IMAGE=localhost/${{ matrix.container.name }}" >> $GITHUB_ENV
+          echo "REMOTE_IMAGE=ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}" >> $GITHUB_ENV
+          echo "IMAGE_VERSION=${{ steps.git-info.outputs.version }}" >> $GITHUB_ENV
+          echo "IMAGE_LATEST=${{ steps.git-info.outputs.latest_tag }}" >> $GITHUB_ENV
+
+      - name: Login to GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build container image with Podman
         run: |
           podman build \
-          --platform linux/amd64 \
-            --tag ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.VERSION }} \
-            --file ${{ matrix.container.file }}
+            --platform linux/amd64 \
+            --tag ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} \
+            --file ${{ matrix.container.file }} \
+            .
 
       - name: Tag image with latest (if on main branch)
-        if: env.LATEST_TAG != ''
+        if: env.IMAGE_LATEST != ''
         run: |
-          podman tag ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.VERSION }} ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.LATEST_TAG }}
+          podman tag ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }}
 
       - name: Push images to GHCR with Skopeo
         run: |
           # Push the versioned tag
           skopeo copy \
-            --dest-creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} \
-            containers-storage:ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.VERSION }} \
-            docker://ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.VERSION }}
+            containers-storage:${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} \
+            docker://${{ env.REMOTE_IMAGE }}:${{ env.IMAGE_VERSION }}
 
           # Push the latest tag if it exists
-          if [ -n "${{ env.LATEST_TAG }}" ]; then
+          if [ -n "${{ env.IMAGE_LATEST }}" ]; then
             skopeo copy \
-              --dest-creds ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} \
-              containers-storage:ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.LATEST_TAG }} \
-              docker://ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.LATEST_TAG }}
+              containers-storage:${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }} \
+              docker://${{ env.REMOTE_IMAGE }}:${{ env.IMAGE_LATEST }}
           fi
 
       - name: Cleanup local images
         if: always()
         run: |
-          podman rmi ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.VERSION }} || true
-          if [ -n "${{ env.LATEST_TAG }}" ]; then
-            podman rmi ghcr.io/${{ env.REPO_LOWER }}/${{ matrix.container.name }}:${{ env.LATEST_TAG }} || true
+          podman rmi ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_VERSION }} || true
+          if [ -n "${{ env.IMAGE_LATEST }}" ]; then
+            podman rmi ${{ env.LOCAL_IMAGE }}:${{ env.IMAGE_LATEST }} || true
           fi

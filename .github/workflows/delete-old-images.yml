@@ -8,7 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [devbox, devbox-fat, devbox-nvidia, devbox-minimal]
+        package: [
+            devbox,
+            # devbox-fat,
+            # devbox-nvidia,
+            devbox-minimal,
+          ]
     permissions:
       packages: write
     steps:
@@ -16,6 +21,6 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@v1.0.15
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          packages: ${{ github.repository }}/${{ matrix.package }}
+          packages: ideal-enigma/${{ matrix.package }}
           older-than: 90 days
           delete-orphaned-images: true

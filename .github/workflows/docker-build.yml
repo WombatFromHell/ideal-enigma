@@ -15,10 +15,12 @@ jobs:
     strategy:
       matrix:
         container:
+          # - name: devbox-fat
+          #   file: ./Containerfile.devbox
+          # - name: devbox-nvidia
+          #   file: ./Containerfile.minimal.devbox
           - name: devbox
-            file: ./Containerfile.devbox
-          - name: devbox-minimal
-            file: ./Containerfile.minimal.devbox
+            file: ./Containerfile.minimal.amd.devbox
 
     steps:
       - name: Checkout code

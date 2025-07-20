@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 declare -A images
-images["devbox"]="Containerfile.devbox"
-images["devbox-minimal"]="Containerfile.minimal.devbox"
+# images["devbox-fat"]="Containerfile.devbox"
+# images["devbox-nvidia"]="Containerfile.minimal.devbox"
+images["devbox"]="Containerfile.minimal.amd.devbox"
 
 if command -v docker &>/dev/null; then
 	RUNTIME="docker"

@@ -1,0 +1,37 @@
+# hadolint global ignore=DL4006,DL3008,SC2028
+FROM debian:sid-slim
+
+LABEL org.opencontainers.image.source=https://github.com/WombatFromHell/ideal-enigma
+LABEL org.opencontainers.image.description="Debian based development container for use with Distrobox"
+LABEL org.opencontainers.image.licenses=MIT
+
+RUN apt-get update && \
+  apt-get install -yqq --no-install-recommends \
+  xdg-desktop-portal-kde flatpak-xdg-utils desktop-file-utils ca-certificates \
+  libfuse2 wget curl wget gpg git build-essential pkg-config && \
+  # Install VSCode, Brave Browser, and Firefox Dev Edition sources
+  wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >packages.microsoft.gpg && \
+  install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg && \
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | tee /etc/apt/sources.list.d/vscode.list >/dev/null && \
+  rm -f packages.microsoft.gpg && \
+  #
+  wget -q https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg -O- | tee /usr/share/keyrings/brave-browser-archive-keyring.gpg >/dev/null && \
+  echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | tee /etc/apt/sources.list.d/brave-browser-release.list >/dev/null && \
+  #
+  wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | tee /etc/apt/keyrings/packages.mozilla.org.asc >/dev/null && \
+  echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list >/dev/null && \
+  echo "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" | tee -a /etc/apt/preferences.d/mozilla >/dev/null && \
+  #
+  # Install dev environment dependencies
+  apt-get update && \
+  apt-get upgrade -yqq && \
+  apt-get install -yqq --no-install-recommends \
+  fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
+  mesa-utils vulkan-tools vainfo ffmpeg qt6-wayland \
+  # install browsers and vscode
+  code brave-browser firefox-devedition && \
+  # wipe the apt lists to comply with best practice
+  apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
+
+
+ENTRYPOINT [ "/bin/bash" ]

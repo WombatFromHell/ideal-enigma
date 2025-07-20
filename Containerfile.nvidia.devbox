@@ -1,27 +1,30 @@
 # hadolint global ignore=DL4006,DL3008,SC2028
+FROM alpine:latest AS version-fetcher
+RUN apk add --no-cache curl jq && \
+  curl -s https://api.github.com/repos/NVIDIA/open-gpu-kernel-modules/tags | \
+  jq -r '.[0].name' > /tmp/nv_driver_ver.txt
+
 FROM debian:sid-slim
+COPY --from=version-fetcher /tmp/nv_driver_ver.txt /tmp/
 
 LABEL org.opencontainers.image.source=https://github.com/WombatFromHell/ideal-enigma
 LABEL org.opencontainers.image.description="Debian based development container with NVIDIA support intended for use with Distrobox"
 LABEL org.opencontainers.image.licenses=MIT
 
-ARG NV_DRIVER_VER=570.124.04
-ARG DEB_SRC_TARGET=/etc/apt/sources.list.d/debian.sources
-
 # only install nvidia driver libs/utils and not kernel modules
-RUN apt-get update && \
+RUN NV_DRIVER_VER="$(cat /tmp/nv_driver_ver.txt)" && \
+  echo "Using fetched latest driver version: ${NV_DRIVER_VER}" && \
+  apt-get update && \
   apt-get install -yqq --no-install-recommends ca-certificates gpg wget build-essential kmod gcc-multilib libglvnd-dev pkg-config && \
   wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/${NV_DRIVER_VER}/NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   chmod +x NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
   ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run --no-kernel-modules --no-x-check -s && \
   rm -f ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
-  apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
+  apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/* && \
+  rm /tmp/nv_driver_ver.txt
 
-# Install Windsurf, VSCode, Brave Browser, and Firefox Dev Edition sources
-RUN wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf.gpg" | gpg --dearmor -o /usr/share/keyrings/windsurf-stable-archive-keyring.gpg && \
-  echo "deb [signed-by=/usr/share/keyrings/windsurf-stable-archive-keyring.gpg arch=amd64] https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/apt stable main" | tee /etc/apt/sources.list.d/windsurf.list > /dev/null && \
-  #
-  wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >packages.microsoft.gpg && \
+# Install VSCode, Brave Browser, and Firefox Dev Edition sources
+RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >packages.microsoft.gpg && \
   install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg && \
   echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | tee /etc/apt/sources.list.d/vscode.list >/dev/null && \
   rm -f packages.microsoft.gpg && \
@@ -36,10 +39,10 @@ RUN wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf
   # Install only dev environment dependencies
   apt-get update && \
   apt-get upgrade -yqq --no-install-recommends \
-  ca-certificates gpg wget build-essential \
   git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
   libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
   mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg qt6-wayland \
+  code brave-browser firefox-devedition \
   apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
 
 ENTRYPOINT [ "/bin/bash" ]

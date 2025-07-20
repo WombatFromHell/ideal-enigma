@@ -2,25 +2,14 @@
 FROM debian:sid-slim
 
 LABEL org.opencontainers.image.source=https://github.com/WombatFromHell/ideal-enigma
-LABEL org.opencontainers.image.description="Debian based development container with NVIDIA support intended for use with Distrobox"
+LABEL org.opencontainers.image.description="Debian based development container for use with Distrobox"
 LABEL org.opencontainers.image.licenses=MIT
 
-ARG NV_DRIVER_VER=570.124.04
-ARG DEB_SRC_TARGET=/etc/apt/sources.list.d/debian.sources
-
-# only install nvidia driver libs/utils and not kernel modules
 RUN apt-get update && \
-  apt-get install -yqq --no-install-recommends ca-certificates gpg wget build-essential kmod gcc-multilib libglvnd-dev pkg-config && \
-  wget -q https://us.download.nvidia.com/XFree86/Linux-x86_64/${NV_DRIVER_VER}/NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
-  chmod +x NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
-  ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run --no-kernel-modules --no-x-check -s && \
-  rm -f ./NVIDIA-Linux-x86_64-${NV_DRIVER_VER}.run && \
-  apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
-
-# Install Windsurf, VSCode, Brave Browser, and Firefox Dev Edition sources
-RUN wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf.gpg" | gpg --dearmor -o /usr/share/keyrings/windsurf-stable-archive-keyring.gpg && \
-  echo "deb [signed-by=/usr/share/keyrings/windsurf-stable-archive-keyring.gpg arch=amd64] https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/apt stable main" | tee /etc/apt/sources.list.d/windsurf.list > /dev/null && \
-  #
+  apt-get install -yqq --no-install-recommends \
+  xdg-desktop-portal-kde flatpak-xdg-utils desktop-file-utils ca-certificates \
+  libfuse2 wget curl wget gpg git build-essential pkg-config && \
+  # Install VSCode, Brave Browser, and Firefox Dev Edition sources
   wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >packages.microsoft.gpg && \
   install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg && \
   echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | tee /etc/apt/sources.list.d/vscode.list >/dev/null && \
@@ -33,15 +22,16 @@ RUN wget -qO- "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf
   echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list >/dev/null && \
   echo "Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000" | tee -a /etc/apt/preferences.d/mozilla >/dev/null && \
   #
-  # Install Windsurf and dev environment dependencies
+  # Install dev environment dependencies
   apt-get update && \
-  apt-get upgrade -yqq --no-install-recommends \
-  ca-certificates gpg wget build-essential \
-  git curl apt-transport-https xdg-desktop-portal-kde flatpak-xdg-utils \
-  libfuse2 fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
-  mesa-utils vulkan-tools nvidia-vaapi-driver vainfo ffmpeg qt6-wayland \
-  # brave-browser code firefox-devedition && \
-  windsurf && \
+  apt-get upgrade -yqq && \
+  apt-get install -yqq --no-install-recommends \
+  fish bat eza fzf rdfind fd-find ripgrep zoxide pulseaudio \
+  mesa-utils vulkan-tools vainfo ffmpeg qt6-wayland \
+  # install browsers and vscode
+  code brave-browser firefox-devedition && \
+  # wipe the apt lists to comply with best practice
   apt-get clean -yqq; apt-get autoremove -yqq; apt-get autoclean -yqq; rm -rf /var/tmp/* /tmp/* /var/lib/apt/lists/*
+
 
 ENTRYPOINT [ "/bin/bash" ]

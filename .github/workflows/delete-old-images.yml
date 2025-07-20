@@ -1,16 +1,14 @@
 name: Cleanup Old Images
 on:
   workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-
 jobs:
   delete-older-images:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [devbox]
+        package: [devbox, devbox-fat, devbox-nvidia, devbox-minimal]
     permissions:
       packages: write
     steps:
@@ -18,8 +16,6 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@v1.0.15
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          packages: ideal-enigma/${{ matrix.package }}
+          packages: ${{ github.repository }}/${{ matrix.package }}
           older-than: 90 days
           delete-orphaned-images: true
-          keep-n-tagged: 7
-          keep-n-untagged: 7
